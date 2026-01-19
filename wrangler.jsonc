@@ -1,8 +1,8 @@
 {
   "name": "morikaz-blog",
+  "type": "javascript",
   "compatibility_date": "2026-01-19",
-  "pages_build_configuration": {
-    "build_command": "npm run build",
-    "destination_dir": "dist"
+  "assets": {
+    "directory": "./dist"
   }
 }

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "astro": "^5.16.11",
-    "rehype-autolink-headings": "^7.1.0"
+    "rehype-autolink-headings": "^7.1.0",
+    "unist-util-visit": "^5.0.0"
   }
 }

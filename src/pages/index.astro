@@ -8,6 +8,8 @@ const sortedPosts = allPosts.sort((a, b) => {
   const dateB = new Date(b.data.pubDate);
   return dateB.getTime() - dateA.getTime();
 });
+
+const baseUrl = import.meta.env.BASE_URL;
 ---
 
 <Layout title="Adorable Axis - ブログ">
@@ -26,7 +28,7 @@ const sortedPosts = allPosts.sort((a, b) => {
             <div class="post-card-content">
               <div class="post-header">
                 <h2>
-                  <a href={`/blog/${post.id}/`}>{post.data.title}</a>
+                  <a href={`${baseUrl}blog/${post.id}/`}>{post.data.title}</a>
                 </h2>
               </div>
               <div class="post-meta">

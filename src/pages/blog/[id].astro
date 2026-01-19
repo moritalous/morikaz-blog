@@ -17,6 +17,7 @@ interface Props {
 const { post } = Astro.props;
 const entry = await getEntry('blog', post.id);
 const { Content } = await render(entry!);
+const baseUrl = import.meta.env.BASE_URL;
 ---
 
 <Layout title={post.data.title}>
@@ -58,7 +59,7 @@ const { Content } = await render(entry!);
         </div>
 
         <div class="post-footer">
-          <a href="/" class="back-link">← トップに戻る</a>
+          <a href={baseUrl} class="back-link">← トップに戻る</a>
         </div>
       </article>
     </div>

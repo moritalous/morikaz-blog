@@ -1,0 +1,613 @@
+---
+import { getCollection, getEntry, render } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog');
+  return posts.map((post) => ({
+    params: { id: post.id },
+    props: { post },
+  }));
+}
+
+interface Props {
+  post: any;
+}
+
+const { post } = Astro.props;
+const entry = await getEntry('blog', post.id);
+const { Content } = await render(entry!);
+---
+
+<Layout title={post.data.title}>
+  <div class="post-header-section">
+    <div class="container">
+      <h1>{post.data.title}</h1>
+      <div class="post-meta">
+        <time datetime={post.data.pubDate}>
+          <span class="icon">📅</span>
+          {new Date(post.data.pubDate).toLocaleDateString('ja-JP', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          })}
+        </time>
+      </div>
+      {post.data.tags && post.data.tags.length > 0 && (
+        <div class="tags">
+          {post.data.tags.map((tag: string) => (
+            <span class="tag">{tag}</span>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+
+  <main class="post-main">
+    <div class="post-container">
+      <aside class="toc-sidebar">
+        <nav class="toc">
+          <h3>目次</h3>
+          <ul id="toc-list"></ul>
+        </nav>
+      </aside>
+
+      <article class="post">
+        <div class="post-content" id="post-content">
+          <Content />
+        </div>
+
+        <div class="post-footer">
+          <a href="/" class="back-link">← トップに戻る</a>
+        </div>
+      </article>
+    </div>
+  </main>
+
+  <script is:inline>
+    function generateTableOfContents() {
+      const postContent = document.getElementById('post-content');
+      const tocList = document.getElementById('toc-list');
+
+      if (!postContent || !tocList) return;
+
+      const headings = postContent.querySelectorAll('h1, h2, h3, h4');
+
+      if (headings.length === 0) {
+        const sidebar = document.querySelector('.toc-sidebar');
+        if (sidebar) sidebar.style.display = 'none';
+        return;
+      }
+
+      headings.forEach((heading, index) => {
+        const id = heading.id || `heading-${index}`;
+        heading.id = id;
+
+        const level = parseInt(heading.tagName[1]);
+        const text = heading.textContent || '';
+
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = `#${id}`;
+
+        // レベルに応じてアイコンを追加
+        let icon = '';
+        if (level === 1) {
+          icon = '📌 ';
+        } else if (level === 2) {
+          icon = '• ';
+        } else if (level === 3) {
+          icon = '◦ ';
+        } else if (level === 4) {
+          icon = '▪ ';
+        }
+
+        a.innerHTML = `<span class="toc-icon">${icon}</span><span class="toc-text">${text}</span>`;
+
+        li.className = `toc-level-${level}`;
+        li.appendChild(a);
+        tocList.appendChild(li);
+      });
+    }
+
+    // Run immediately if DOM is ready, or wait for DOMContentLoaded
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', generateTableOfContents);
+    } else {
+      generateTableOfContents();
+    }
+  </script>
+</Layout>
+
+<style>
+  .post-header-section {
+    background: linear-gradient(135deg, #1a1a2e 0%, #0f3460 50%, #16213e 100%);
+    color: white;
+    padding: 3rem 1rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .post-header-section::before {
+    content: '';
+    position: absolute;
+    top: -20%;
+    right: -15%;
+    width: 50%;
+    height: 150%;
+    background: radial-gradient(circle, rgba(0, 212, 255, 0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  .post-header-section h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
+    line-height: 1.3;
+  }
+
+  .post-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .icon {
+    margin-right: 0.5rem;
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .tag {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(10px);
+  }
+
+  .post-main {
+    padding: 4rem 1rem;
+    background: white;
+    min-height: calc(100vh - 300px);
+  }
+
+  .post-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    gap: 3rem;
+  }
+
+  .toc-sidebar {
+    position: sticky;
+    top: 80px;
+    height: fit-content;
+  }
+
+  .toc {
+    background: linear-gradient(135deg, #f0f9ff 0%, #faf5ff 100%);
+    border: 1px solid rgba(50, 69, 255, 0.2);
+    border-radius: 12px;
+    padding: 1.5rem;
+    font-size: 0.9rem;
+  }
+
+  .toc h3 {
+    margin: 0 0 1rem;
+    font-size: 1rem;
+    color: #3245ff;
+  }
+
+  .toc ul {
+    list-style: none;
+    margin: 0;
+    padding: 0.5rem 0;
+  }
+
+  .toc li {
+    list-style: none;
+  }
+
+  :global(.toc-level-1) {
+    padding: 0.3rem 0 0.3rem 0;
+    margin: 0.5rem 0 0.3rem 0;
+    font-weight: 700;
+    font-size: 0.92rem;
+  }
+
+  :global(.toc-level-1 a) {
+    color: #111827;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    display: block;
+  }
+
+  :global(.toc-level-1 a:hover) {
+    color: #3245ff;
+  }
+
+  :global(.toc-level-2) {
+    padding: 0.2rem 0 0.2rem 1.5rem;
+    margin: 0.15rem 0;
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+
+  :global(.toc-level-2 a) {
+    color: #374151;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    display: block;
+  }
+
+  :global(.toc-level-2 a:hover) {
+    color: #3245ff;
+  }
+
+  :global(.toc-level-3) {
+    padding: 0.15rem 0 0.15rem 2.5rem;
+    margin: 0.1rem 0;
+    font-size: 0.82rem;
+  }
+
+  :global(.toc-level-3 a) {
+    color: #6b7280;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    display: block;
+  }
+
+  :global(.toc-level-3 a:hover) {
+    color: #3245ff;
+  }
+
+  :global(.toc-level-4) {
+    padding: 0.1rem 0 0.1rem 3.5rem;
+    margin: 0.05rem 0;
+    font-size: 0.79rem;
+  }
+
+  :global(.toc-level-4 a) {
+    color: #9ca3af;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    display: block;
+  }
+
+  :global(.toc-level-4 a:hover) {
+    color: #3245ff;
+  }
+
+  :global(.toc-icon) {
+    margin-right: 0.3rem;
+    font-weight: 600;
+  }
+
+  .post {
+    color: #1f2937;
+    min-width: 0;
+  }
+
+  .post-content {
+    font-size: 1.1rem;
+    line-height: 1.85;
+    margin-bottom: 3rem;
+    color: #374151;
+  }
+
+  .post-content :global(h2) {
+    font-size: 1.9rem;
+    margin: 2.5rem 0 1.25rem;
+    color: #111827;
+    border-bottom: 2px solid #f0f9ff;
+    padding-bottom: 0.75rem;
+  }
+
+  .post-content :global(h3) {
+    font-size: 1.4rem;
+    margin: 2rem 0 0.875rem;
+    color: #1f2937;
+  }
+
+  .post-content :global(h4) {
+    font-size: 1.15rem;
+    margin: 1.5rem 0 0.75rem;
+    color: #374151;
+  }
+
+  .post-content :global(p) {
+    margin: 0 0 1.25rem;
+  }
+
+  .post-content :global(ul),
+  .post-content :global(ol) {
+    margin: 1.25rem 0 1.25rem 2rem;
+  }
+
+  .post-content :global(li) {
+    margin: 0.75rem 0;
+  }
+
+  .post-content :global(a) {
+    color: #3245ff;
+    text-decoration: none;
+    transition: color 0.3s ease;
+    border-bottom: 1px solid rgba(50, 69, 255, 0.3);
+  }
+
+  .post-content :global(a:hover) {
+    color: #7c3aed;
+    border-bottom-color: #7c3aed;
+  }
+
+  .post-content {
+    overflow-x: hidden;
+  }
+
+  .post-content :global(img) {
+    max-width: 100%;
+    height: auto;
+    border-radius: 12px;
+    margin: 2rem 0;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #f0f0f0;
+    display: block;
+  }
+
+  .post-content :global(code) {
+    background: #f8f9fa;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-family: 'Fira Code', 'Monaco', monospace;
+    font-size: 0.92em;
+    color: #d63384;
+    border: 1px solid #e9ecef;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .post-content :global(pre) {
+    background: #1f2937;
+    color: #e5e7eb;
+    padding: 1.5rem;
+    border-radius: 12px;
+    overflow-x: auto;
+    margin: 2rem 0;
+    border: 1px solid #374151;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    max-width: 100%;
+  }
+
+  .post-content :global(pre code) {
+    background: none;
+    padding: 0;
+    color: inherit;
+    border: none;
+    word-break: break-word;
+  }
+
+  .post-content :global(blockquote) {
+    border-left: 4px solid #3245ff;
+    margin: 2rem 0;
+    padding: 1rem 0 1rem 1.5rem;
+    background: #f0f9ff;
+    color: #374151;
+    border-radius: 0 8px 8px 0;
+    font-style: italic;
+    font-size: 1.05rem;
+    max-width: 100%;
+  }
+
+  .post-content :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 2rem 0;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+    max-width: 100%;
+    table-layout: auto;
+  }
+
+  .post-content :global(th),
+  .post-content :global(td) {
+    padding: 0.875rem;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+  }
+
+  .post-content :global(th) {
+    background: #f9fafb;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .post-content :global(tr:hover) {
+    background: #f9fafb;
+  }
+
+  .post-footer {
+    padding-top: 2rem;
+    border-top: 2px solid #f0f0f0;
+  }
+
+  .back-link {
+    display: inline-block;
+    color: #3245ff;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    padding: 0.5rem 0;
+  }
+
+  .back-link:hover {
+    color: #7c3aed;
+    transform: translateX(-4px);
+  }
+
+  @media (max-width: 768px) {
+    .post-header-section {
+      padding: 2rem 1rem;
+    }
+
+    .post-header-section h1 {
+      font-size: 1.85rem;
+    }
+
+    .post-main {
+      padding: 2rem 1rem;
+    }
+
+    .post-container {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+
+    .toc-sidebar {
+      position: relative;
+      top: auto;
+    }
+
+    .toc {
+      margin-bottom: 2rem;
+    }
+
+    .post-content {
+      font-size: 1rem;
+    }
+
+    .post-content :global(h2) {
+      font-size: 1.5rem;
+      margin: 1.75rem 0 1rem;
+    }
+
+    .post-content :global(h3) {
+      font-size: 1.2rem;
+      margin: 1.5rem 0 0.75rem;
+    }
+
+    .toc {
+      padding: 1rem;
+      background: linear-gradient(135deg, #f0f9ff 0%, #faf5ff 100%);
+    }
+
+    .toc h3 {
+      font-size: 0.9rem;
+      margin-bottom: 0.75rem;
+    }
+
+    :global(.toc-level-1) {
+      padding: 0.2rem 0;
+      margin: 0.3rem 0 0.2rem 0;
+      font-size: 0.85rem;
+    }
+
+    :global(.toc-level-2) {
+      padding: 0.15rem 0 0.15rem 1rem;
+      margin: 0.1rem 0;
+      font-size: 0.8rem;
+    }
+
+    :global(.toc-level-3) {
+      padding: 0.1rem 0 0.1rem 1.5rem;
+      margin: 0.05rem 0;
+      font-size: 0.76rem;
+    }
+
+    :global(.toc-level-4) {
+      padding: 0.08rem 0 0.08rem 2rem;
+      margin: 0;
+      font-size: 0.72rem;
+    }
+
+    :global(.toc-icon) {
+      margin-right: 0.2rem;
+    }
+
+    .post-container {
+      grid-template-columns: 1fr;
+    }
+
+    .post-main {
+      padding: 1.5rem 1rem;
+    }
+
+    .post-header-section {
+      padding: 1.5rem 1rem;
+    }
+
+    .post-content :global(img) {
+      max-width: 100%;
+      height: auto;
+      margin: 1.25rem 0;
+      border-radius: 8px;
+    }
+
+    .post-content :global(pre) {
+      background: #1f2937;
+      color: #e5e7eb;
+      padding: 1rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 1.25rem 0;
+      font-size: 0.75rem;
+      border: none;
+      box-shadow: none;
+      max-width: 100%;
+    }
+
+    .post-content :global(table) {
+      font-size: 0.75rem;
+      margin: 1rem 0;
+      max-width: 100%;
+      overflow-x: auto;
+      display: block;
+      table-layout: fixed;
+    }
+
+    .post-content :global(th),
+    .post-content :global(td) {
+      padding: 0.5rem 0.25rem;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      white-space: normal;
+    }
+
+    .post-content :global(blockquote) {
+      margin: 1rem 0;
+      padding: 0.75rem 0 0.75rem 1rem;
+      font-size: 0.95rem;
+    }
+
+    .post-content :global(code) {
+      font-size: 0.75rem;
+      word-break: break-word;
+    }
+
+    .post-content {
+      overflow-x: hidden;
+    }
+  }
+</style>

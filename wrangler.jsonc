@@ -1,0 +1,8 @@
+{
+  "name": "morikaz-blog",
+  "compatibility_date": "2026-01-19",
+  "pages_build_configuration": {
+    "build_command": "npm run build",
+    "destination_dir": "dist"
+  }
+}
